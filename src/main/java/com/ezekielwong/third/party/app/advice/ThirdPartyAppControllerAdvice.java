@@ -1,7 +1,7 @@
 package com.ezekielwong.third.party.app.advice;
 
 import com.ezekielwong.third.party.app.controller.ThirdPartyAppController;
-import com.ezekielwong.third.party.app.domain.response.error.AccessTokenErrorResponse;
+import com.ezekielwong.third.party.app.domain.response.AccessTokenErrorResponse;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpStatus;

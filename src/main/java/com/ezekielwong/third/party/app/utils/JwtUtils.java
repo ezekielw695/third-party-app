@@ -6,7 +6,7 @@ import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.exceptions.JWTVerificationException;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import com.ezekielwong.third.party.app.domain.response.AccessTokenResponse;
-import com.ezekielwong.third.party.app.domain.response.error.AccessTokenErrorResponse;
+import com.ezekielwong.third.party.app.domain.response.AccessTokenErrorResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.binary.Base64;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
@@ -70,7 +70,12 @@ public class JwtUtils {
 
         try {
             DecodedJWT decodedJWT = verifier.verify(jwt);
-            return new AccessTokenResponse(decodedJWT.getToken(), "Bearer", 3600);
+
+            return AccessTokenResponse.builder()
+                    .accessToken(decodedJWT.getToken())
+                    .tokenType("Bearer")
+                    .expiresIn(3600)
+                    .build();
 
         // Invalid signature/claims
         } catch (JWTVerificationException exception) {
@@ -79,7 +84,10 @@ public class JwtUtils {
             String errMsg = (cause != null ? cause.getMessage() : exception.getMessage());
             log.error(errMsg);
 
-            return new AccessTokenErrorResponse("Invalid signature/claims", errMsg);
+            return AccessTokenErrorResponse.builder()
+                    .error("Invalid signature/claims")
+                    .errorDesc(errMsg)
+                    .build();
         }
     }
 }

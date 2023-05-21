@@ -1,11 +1,10 @@
 package com.ezekielwong.third.party.app.controller;
 
-import com.ezekielwong.third.party.app.domain.request.WorkflowRequest;
+import com.ezekielwong.third.party.app.domain.request.ms.WorkflowRequest;
 import com.ezekielwong.third.party.app.domain.request.ms.AccessTokenRequest;
-import com.ezekielwong.third.party.app.domain.response.AccessTokenResponse;
 import com.ezekielwong.third.party.app.domain.response.WorkflowResponse;
-import com.ezekielwong.third.party.app.domain.response.error.AccessTokenErrorResponse;
-import com.ezekielwong.third.party.app.domain.response.error.ThirdPartyAppErrorResponse;
+import com.ezekielwong.third.party.app.domain.response.AccessTokenErrorResponse;
+import com.ezekielwong.third.party.app.domain.response.ThirdPartyAppErrorResponse;
 import com.ezekielwong.third.party.app.service.ThirdPartyAppServiceImpl;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
@@ -33,7 +32,7 @@ import java.util.HashMap;
 @RequiredArgsConstructor
 public class ThirdPartyAppController {
 
-    private final Boolean hasError = true;
+    private final Boolean hasError = false;
 
     private final ThirdPartyAppServiceImpl thirdPartyAppServiceImpl;
 
@@ -49,8 +48,12 @@ public class ThirdPartyAppController {
 
         // Invalid grant_type
         if(!StringUtils.equals(accessTokenRequest.getGrantType(), "urn:ietf:params:oauth:grant-type:jwt-bearer")) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(new AccessTokenErrorResponse("Invalid grant_type", "Invalid grant_type"));
+
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(AccessTokenErrorResponse.builder()
+                            .error("Invalid grant_type")
+                            .errorDesc("Invalid grant_type")
+                            .build());
         }
 
         log.debug("Verifying JSON web token");
@@ -60,7 +63,7 @@ public class ThirdPartyAppController {
         log.debug(tokenResponse.toString());
 
         if (tokenResponse.getClass() == AccessTokenErrorResponse.class) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(tokenResponse);
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(tokenResponse);
         } else {
             return ResponseEntity.ok().body(tokenResponse);
         }
@@ -69,17 +72,45 @@ public class ThirdPartyAppController {
     @PostMapping(value = "/3b719479-f5ca-476d-b76a-dbf2f6143b5d/workflows")
     public ResponseEntity<Object> receiveWorkflow(@RequestBody WorkflowRequest workflowRequest, HttpServletRequest servletRequest) {
 
-        if (hasError.equals(Boolean.TRUE)) {
-            ThirdPartyAppErrorResponse.Error error = new ThirdPartyAppErrorResponse.Error(
-                    422, 101, "Validation Error", "123");
-            ThirdPartyAppErrorResponse.ValidationError validationError = new ThirdPartyAppErrorResponse.ValidationError(
-                    1001, "Name", "Names cannot contain the following characters: \\ / : * ? \" &lt; > |");
+        printRequestHeaders(servletRequest);
+        log.debug(workflowRequest.toString());
 
-            return ResponseEntity.badRequest().body(new ThirdPartyAppErrorResponse(error, Collections.singletonList(validationError)));
+        if (hasError.equals(Boolean.TRUE)) {
+
+            ThirdPartyAppErrorResponse.Error error = ThirdPartyAppErrorResponse.Error.builder()
+                    .httpStatusCode(422)
+                    .errorCode(101)
+                    .errorMessage("Validation Error")
+                    .referenceId("123")
+                    .build();
+
+            ThirdPartyAppErrorResponse.ValidationError validationError = ThirdPartyAppErrorResponse.ValidationError.builder()
+                    .errorCode(1001)
+                    .propertyName("Name")
+                    .errorMessage("Names cannot contain the following characters: \\ / : * ? \" &lt; > |")
+                    .build();
+
+            ThirdPartyAppErrorResponse thirdPartyAppErrorResponse = ThirdPartyAppErrorResponse.builder()
+                    .error(error)
+                    .validationErrorList(Collections.singletonList(validationError))
+                    .build();
+
+                    log.debug(thirdPartyAppErrorResponse.toString());
+
+            return ResponseEntity.badRequest().body(thirdPartyAppErrorResponse);
 
         } else {
-            return ResponseEntity.ok().body(new WorkflowResponse("Initiate Agreement Workflow",
-                    LocalDateTime.now().toString(), "Executing", ""));
+
+            WorkflowResponse response = WorkflowResponse.builder()
+                    .name("Initiate Agreement Workflow")
+                    .startDate(LocalDateTime.now().toString())
+                    .status("Executing")
+                    .info("")
+                    .build();
+
+            log.debug(response.toString());
+
+            return ResponseEntity.ok(response);
         }
     }
 
@@ -89,6 +120,7 @@ public class ThirdPartyAppController {
         Enumeration<String> headerNames = servletRequest.getHeaderNames();
 
         if (headerNames != null) {
+
             while (headerNames.hasMoreElements()) {
                 log.debug(servletRequest.getHeader(headerNames.nextElement()));
             }
